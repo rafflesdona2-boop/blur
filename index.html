@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prabu Krisna Cam — Angkat 2 Jari</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --maroon-deep:#1a0503;
+    --maroon:#2b0805;
+    --red:#d3161c;
+    --red-bright:#ea1f1f;
+    --gold:#f2b705;
+    --gold-light:#ffe08a;
+    --cream:#fff7e6;
+    --ink:#120302;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:
+      radial-gradient(ellipse at 50% -10%, #3a0e08 0%, var(--maroon-deep) 55%, var(--ink) 100%);
+    color:var(--cream);
+    font-family:'Poppins',sans-serif;
+    overflow-x:hidden;
+  }
+
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background-image:
+      radial-gradient(circle at 10% 20%, rgba(242,183,5,0.06) 0, transparent 35%),
+      radial-gradient(circle at 90% 15%, rgba(242,183,5,0.05) 0, transparent 30%),
+      radial-gradient(circle at 80% 90%, rgba(211,22,28,0.10) 0, transparent 40%);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  .stage{
+    position:relative;
+    z-index:1;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:36px 16px 60px;
+  }
+
+  .eyebrow{
+    letter-spacing:.35em;
+    font-size:11px;
+    text-transform:uppercase;
+    color:var(--gold-light);
+    opacity:.75;
+    margin-bottom:6px;
+    font-weight:500;
+  }
+
+  h1{
+    font-family:'Anton', sans-serif;
+    font-weight:400;
+    font-size:clamp(28px, 6vw, 52px);
+    letter-spacing:.03em;
+    margin:0 0 4px;
+    text-align:center;
+    color:var(--gold);
+    text-shadow: 0 2px 0 rgba(0,0,0,.35), 0 0 26px rgba(242,183,5,.25);
+  }
+
+  .subtitle{
+    text-align:center;
+    max-width:520px;
+    color:var(--cream);
+    opacity:.72;
+    font-size:14.5px;
+    line-height:1.55;
+    margin:0 0 30px;
+  }
+
+  .subtitle b{ color:var(--gold-light); font-weight:600; }
+
+  .badge-wrap{
+    position:relative;
+    width:min(92vw, 640px);
+    aspect-ratio: 4 / 3;
+    filter: drop-shadow(0 18px 40px rgba(0,0,0,.55));
+  }
+
+  .badge-frame{
+    position:absolute; inset:0;
+    border-radius: 16px;
+    background: linear-gradient(160deg, var(--gold) 0%, #c98d02 55%, var(--gold) 100%);
+    padding:6px;
+    animation: idlePulse 5s ease-in-out infinite;
+  }
+
+  .badge-inner{
+    position:absolute; inset:6px;
+    border-radius: 10px;
+    background:var(--ink);
+    overflow:hidden;
+  }
+
+  #video{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    object-fit:cover;
+    transform:scaleX(-1);
+  }
+
+  #fx-canvas{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    pointer-events:none;
+  }
+
+  #logo-overlay{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    pointer-events:none; opacity:0;
+    transition: opacity .5s ease;
+  }
+
+  #logo-overlay.show{ opacity:1; }
+
+  .hint-pill{
+    position:absolute;
+    left:50%; bottom:14px;
+    transform:translateX(-50%);
+    background:rgba(0,0,0,.55);
+    border:1px solid rgba(242,183,5,.5);
+    color:var(--gold-light);
+    padding:6px 14px;
+    border-radius:999px;
+    font-size:12px;
+    backdrop-filter:blur(4px);
+    white-space:nowrap;
+  }
+
+  .controls{
+    margin-top:30px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:14px;
+  }
+
+  #startBtn{
+    font-family:'Anton', sans-serif;
+    font-size:16px;
+    color:var(--ink);
+    background: linear-gradient(180deg, var(--gold-light), var(--gold));
+    border:none;
+    padding:14px 34px;
+    border-radius:10px;
+    cursor:pointer;
+    box-shadow: 0 8px 0 #9a6c02;
+  }
+
+  .status-row{ display:flex; align-items:center; gap:10px; font-size:13px; }
+  .dot{ width:9px; height:9px; border-radius:50%; background:#666; }
+  .dot.on{ background:var(--red-bright); }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="eyebrow">Ambalan Prabu Krisna · SMA Negeri 6 Madiun</div>
+  <h1>PRABU KRISNA CAM</h1>
+  <p class="subtitle">Nyalakan kamera, lalu angkat <b>dua jari</b> untuk memunculkan efek.</p>
+
+  <div class="badge-wrap">
+    <div class="badge-frame" id="badgeFrame">
+      <div class="badge-inner">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="fx-canvas"></canvas>
+        <div id="logo-overlay"><img id="logoImg" alt="Logo"></div>
+        <div class="hint-pill" id="hintPill">Klik tombol di bawah</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="startBtn">Nyalakan Kamera</button>
+    <div class="status-row">
+      <span class="dot" id="statusDot"></span>
+      <span id="statusText">Kamera belum aktif</span>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+<script>
+  const video = document.getElementById('video');
+  const startBtn = document.getElementById('startBtn');
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+  const hintPill = document.getElementById('hintPill');
+
+  async function startCamera() {
+    startBtn.disabled = true;
+    statusText.textContent = 'Meminta izin...';
+    
+    try {
+      // Meminta akses media dengan constraint standar
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false
+      });
+      
+      video.srcObject = stream;
+      statusDot.classList.add('on');
+      statusText.textContent = 'Kamera Aktif';
+      hintPill.textContent = 'Arahkan tangan ke kamera';
+      
+      // Inisialisasi MediaPipe setelah kamera berhasil
+      const hands = new Hands({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
+      hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7 });
+      
+      const camera = new Camera(video, {
+        onFrame: async () => { await hands.send({ image: video }); },
+        width: 640, height: 480
+      });
+      await camera.start();
+      
+    } catch (err) {
+      statusText.textContent = 'Izin kamera ditolak atau tidak tersedia.';
+      startBtn.disabled = false;
+      console.error(err);
+    }
+  }
+
+  startBtn.addEventListener('click', startCamera);
+</script>
+
+</body>
+</html>
