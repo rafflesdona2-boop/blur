@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>kita blur</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#07070b;
+    --violet:#8b7fff;
+    --mint:#57e6c7;
+    --ink:#f5f4fb;
+    --muted:rgba(245,244,251,0.62);
+    --glass:rgba(255,255,255,0.07);
+    --glass-strong:rgba(255,255,255,0.12);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    background:var(--bg); color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    overflow:hidden;
+  }
+  .app{
+    position:fixed; inset:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+
+  /* ---------- video layer ---------- */
+  #video{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    object-fit:cover;
+    transform:scaleX(-1);
+    filter:blur(0px) saturate(1);
+    transition:filter 550ms cubic-bezier(.2,.8,.2,1);
+    background:#050507;
+  }
+  .app.blurred #video{
+    filter:blur(26px) saturate(1.15) brightness(0.85);
+  }
+  .vignette{
+    position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(120% 90% at 50% 15%, rgba(0,0,0,0) 40%, rgba(0,0,0,0.55) 100%);
+  }
+
+  /* ---------- center photo / aura ---------- */
+  .center-photo{
+    position:absolute; left:50%; top:50%;
+    transform:translate(-50%,-50%) scale(0.82);
+    width:min(64vw, 340px); height:min(64vw, 340px);
+    border-radius:50%;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 500ms ease, transform 650ms cubic-bezier(.2,.9,.25,1.2);
+    display:flex; align-items:center; justify-content:center;
+    background-size:cover; background-position:center;
+    box-shadow:0 0 0 1px rgba(255,255,255,0.12), 0 30px 80px rgba(0,0,0,0.55);
+  }
+  .center-photo .aura-emoji{ font-size:64px; filter:drop-shadow(0 6px 20px rgba(0,0,0,0.4)); }
+  .app.blurred .center-photo{
+    opacity:1;
+    transform:translate(-50%,-50%) scale(1);
+  }
+  .ring{
+    position:absolute; left:50%; top:50%;
+    width:min(64vw, 340px); height:min(64vw, 340px);
+    border-radius:50%;
+    transform:translate(-50%,-50%) scale(0.82);
+    opacity:0;
+    pointer-events:none;
+    border:1px solid rgba(255,255,255,0.35);
+    transition:opacity 500ms ease, transform 650ms cubic-bezier(.2,.9,.25,1.2);
+  }
+  .app.blurred .ring{ opacity:1; transform:translate(-50%,-50%) scale(1); }
+  .ring::before, .ring::after{
+    content:''; position:absolute; inset:-14px; border-radius:50%;
+    background:conic-gradient(from 0deg, var(--violet), var(--mint), var(--violet));
+    filter:blur(22px); opacity:0.55; z-index:-1;
+    animation:spin 6s linear infinite;
+  }
+  .ring::after{ inset:-28px; opacity:0.25; animation-duration:10s; animation-direction:reverse; }
+  @keyframes spin{ to{ transform:rotate(360deg);} }
+  @media (prefers-reduced-motion:reduce){
+    .ring::before, .ring::after{ animation:none; }
+  }
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    position:absolute; top:0; left:0; right:0;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    padding:22px 16px 14px;
+    z-index:5;
+  }
+  .topbar h1{
+    font-family:'Sora',sans-serif; font-weight:800; font-size:19px;
+    letter-spacing:0.2px; margin:0;
+    background:linear-gradient(90deg, var(--violet), var(--mint));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .dot{
+    width:8px; height:8px; border-radius:50%;
+    background:#5a5a66;
+    box-shadow:0 0 0 0 rgba(90,90,102,0.5);
+  }
+  .dot.ready{ background:var(--mint); box-shadow:0 0 0 4px rgba(87,230,199,0.15); }
+  .dot.active{ background:var(--violet); box-shadow:0 0 0 4px rgba(139,127,255,0.22); animation:pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{ opacity:1;} 50%{ opacity:0.4;} }
+
+  /* ---------- hint pill ---------- */
+  .hint{
+    position:absolute; left:50%; bottom:104px; transform:translateX(-50%);
+    padding:10px 18px;
+    border-radius:999px;
+    background:var(--glass);
+    backdrop-filter:blur(14px);
+    border:1px solid rgba(255,255,255,0.1);
+    font-size:13px; color:var(--muted);
+    white-space:nowrap;
+    transition:opacity 300ms ease, transform 300ms ease;
+    z-index:5;
+  }
+  .app.blurred .hint{ opacity:0; transform:translateX(-50%) translateY(6px); }
+
+  /* ---------- controls ---------- */
+  .controls{
+    position:absolute; bottom:0; left:0; right:0;
+    display:flex; align-items:center; justify-content:center; gap:14px;
+    padding:18px 16px calc(22px + env(safe-area-inset-bottom));
+    z-index:6;
+  }
+  .upload-btn{
+    display:flex; align-items:center; gap:8px;
+    padding:12px 20px;
+    border-radius:999px;
+    background:var(--glass-strong);
+    backdrop-filter:blur(14px);
+    border:1px solid rgba(255,255,255,0.14);
+    font-size:13.5px; font-weight:500; color:var(--ink);
+    cursor:pointer; user-select:none;
+    transition:background 200ms ease, transform 150ms ease;
+  }
+  .upload-btn:active{ transform:scale(0.96); }
+  .upload-btn:hover{ background:rgba(255,255,255,0.16); }
+
+  /* ---------- permission overlay ---------- */
+  .perm{
+    position:absolute; inset:0; z-index:20;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:18px; text-align:center; padding:32px;
+    background:radial-gradient(120% 100% at 50% 0%, #16121f 0%, #07070b 70%);
+  }
+  .perm.hidden{ display:none; }
+  .perm .badge{ font-size:44px; }
+  .perm h2{ font-family:'Sora',sans-serif; font-size:22px; margin:0; font-weight:700; }
+  .perm p{ margin:0; max-width:320px; color:var(--muted); font-size:14px; line-height:1.6; }
+  .perm button{
+    margin-top:6px;
+    padding:14px 30px;
+    border:none; border-radius:999px;
+    background:linear-gradient(90deg, var(--violet), var(--mint));
+    color:#0a0a0f; font-weight:700; font-size:14.5px;
+    cursor:pointer;
+    box-shadow:0 12px 30px rgba(139,127,255,0.25);
+  }
+  .perm .err{ color:#ff8b8b; font-size:12.5px; max-width:300px; }
+
+  .loading{
+    position:absolute; inset:0; z-index:15;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--bg);
+    transition:opacity 400ms ease;
+  }
+  .loading.hidden{ opacity:0; pointer-events:none; }
+  .loading span{ font-size:13px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <video id="video" autoplay playsinline muted></video>
+  <div class="vignette"></div>
+
+  <div class="ring" id="ring"></div>
+  <div class="center-photo" id="centerPhoto">
+    <span class="aura-emoji">✨</span>
+  </div>
+
+  <header class="topbar">
+    <span class="dot" id="statusDot"></span>
+    <h1>kita blur</h1>
+  </header>
+
+  <div class="hint" id="hint">✌️ Angkat 2 jari ke arah kamera</div>
+
+  <div class="controls">
+    <label class="upload-btn">
+      📷 Ganti Foto
+      <input type="file" id="fileInput" accept="image/*" hidden>
+    </label>
+  </div>
+
+  <div class="loading" id="loading"><span>Menyiapkan model tangan…</span></div>
+
+  <div class="perm" id="permOverlay">
+    <div class="badge">✌️</div>
+    <h2>kita blur</h2>
+    <p>Izinkan akses kamera lalu angkat dua jari (tanda peace) ke layar. Layar akan blur otomatis dan foto akan muncul di tengah.</p>
+    <button id="startBtn">Aktifkan Kamera</button>
+    <p class="err" id="errMsg"></p>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script>
+(function(){
+  const app = document.getElementById('app');
+  const video = document.getElementById('video');
+  const statusDot = document.getElementById('statusDot');
+  const permOverlay = document.getElementById('permOverlay');
+  const startBtn = document.getElementById('startBtn');
+  const errMsg = document.getElementById('errMsg');
+  const loading = document.getElementById('loading');
+  const centerPhoto = document.getElementById('centerPhoto');
+  const fileInput = document.getElementById('fileInput');
+
+  let framesTrue = 0, framesFalse = 0;
+  let blurred = false;
+  const ON_THRESHOLD = 3;   // frame berturut-turut untuk menyalakan blur
+  const OFF_THRESHOLD = 4;  // frame berturut-turut untuk mematikan blur
+
+  function setBlurred(state){
+    if (state === blurred) return;
+    blurred = state;
+    app.classList.toggle('blurred', blurred);
+    statusDot.classList.toggle('active', blurred);
+  }
+
+  function isFingerUp(lm, tip, pip){
+    return lm[tip].y < lm[pip].y;
+  }
+
+  // Mendeteksi gestur "dua jari" (telunjuk + tengah terangkat, manis & kelingking turun)
+  function isTwoFingerSign(lm){
+    const indexUp  = isFingerUp(lm, 8, 6);
+    const middleUp = isFingerUp(lm, 12, 10);
+    const ringDown  = !isFingerUp(lm, 16, 14);
+    const pinkyDown = !isFingerUp(lm, 20, 18);
+    return indexUp && middleUp && ringDown && pinkyDown;
+  }
+
+  function onResults(results){
+    let detected = false;
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0){
+      for (const lm of results.multiHandLandmarks){
+        if (isTwoFingerSign(lm)){ detected = true; break; }
+      }
+    }
+
+    if (detected){
+      framesTrue++; framesFalse = 0;
+      if (framesTrue >= ON_THRESHOLD) setBlurred(true);
+    } else {
+      framesFalse++; framesTrue = 0;
+      if (framesFalse >= OFF_THRESHOLD) setBlurred(false);
+    }
+  }
+
+  async function start(){
+    errMsg.textContent = '';
+    try{
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width:{ideal:640}, height:{ideal:480} },
+        audio: false
+      });
+      video.srcObject = stream;
+      await video.play();
+
+      permOverlay.classList.add('hidden');
+      loading.classList.remove('hidden');
+
+      const hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+      });
+      hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.6
+      });
+      hands.onResults(onResults);
+
+      const camera = new Camera(video, {
+        onFrame: async () => { await hands.send({ image: video }); },
+        width: 640,
+        height: 480
+      });
+      camera.start();
+
+      statusDot.classList.add('ready');
+      loading.classList.add('hidden');
+
+    } catch(err){
+      console.error(err);
+      permOverlay.classList.remove('hidden');
+      loading.classList.add('hidden');
+      errMsg.textContent = 'Tidak bisa mengakses kamera atau model tangan. Pastikan izin kamera diberikan dan koneksi internet aktif.';
+    }
+  }
+
+  startBtn.addEventListener('click', start);
+
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    centerPhoto.style.backgroundImage = `url(${url})`;
+    centerPhoto.innerHTML = '';
+    centerPhoto.style.backgroundImage = `url(${url})`;
+  });
+})();
+</script>
+</body>
+</html>
